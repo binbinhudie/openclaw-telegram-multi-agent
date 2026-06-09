@@ -23,10 +23,9 @@ chmod +x setup_telegram_multi_agent.sh
 
 # 或命令行
 ./setup_telegram_multi_agent.sh \
-  --main-token "主bot:token" \
+  --main "主bot:主bot_token:@主bot名" \
   --user-id "123456" \
   --group-id "-1001234567890" \
-  --main-username "@主bot名" \
   --bot "coder:子bot1token:@coder_bot" \
   --bot "writer:子bot2token:@writer_bot"
 ```
@@ -37,10 +36,10 @@ chmod +x setup_telegram_multi_agent.sh
 
 | 参数 | 说明 | 必需 |
 |------|------|------|
-| `--main-token` | 主 Bot Token (from @BotFather) | 是 |
+| `--main` | 主 Bot 配置，格式 `名称:Token:@Username` | 是 |
 | `--user-id` | 你的 Telegram User ID (from @userinfobot) | 是 |
 | `--group-id` | 群组 ID (如 -1001234567890) | 是 |
-| `--bot` | 子 Bot 配置 (格式: 名称:Token) | 是 |
+| `--bot` | 子 Bot 配置，格式 `名称:Token:@Username`，可重复传入 | 是 |
 
 ### 架构说明
 

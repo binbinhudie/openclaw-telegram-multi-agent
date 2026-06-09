@@ -5,7 +5,7 @@
 
 set -e
 
-SCRIPT_VERSION="1.0.3"
+SCRIPT_VERSION="1.0.4"
 OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
 BACKUP_CONFIG="$HOME/.openclaw/openclaw.json.backup-$(date +%Y%m%d_%H%M%S)"
 
@@ -311,7 +311,7 @@ config['channels']['telegram'] = {
     'enabled': True,
     'dmPolicy': 'pairing',
     'groupAllowFrom': [user_id],
-    'streamMode': 'partial',
+    'streaming': {'mode': 'partial'},
     'groups': {group_id: {'requireMention': True, 'allowFrom': [user_id]}},
     'accounts': {
         'default': {
@@ -320,7 +320,7 @@ config['channels']['telegram'] = {
             'groupPolicy': 'allowlist',
             'groupAllowFrom': [user_id],
             'allowFrom': [user_id],
-            'streamMode': 'partial'
+            'streaming': {'mode': 'partial'}
         }
     }
 }
@@ -334,7 +334,7 @@ for bot in bots:
         'allowFrom': [user_id],
         'groupPolicy': 'allowlist',
         'groupAllowFrom': [user_id],
-        'streamMode': 'partial'
+        'streaming': {'mode': 'partial'}
     }
 
 with open(config_path, 'w', encoding='utf-8') as f:
@@ -444,7 +444,7 @@ PYEOF
     if [ -n "$bot_configs" ]; then
         while IFS='|' read -r bot_id name username token; do
             [ -z "$bot_id" ] && continue
-            local nickname="${name^}"
+            local nickname="$(printf '%s' "$name" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
 
             create_workspace_dirs "$bot_id"
             generate_identity_md "$bot_id" "$nickname" "$username" "$name"

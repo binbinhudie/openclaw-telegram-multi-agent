@@ -5,7 +5,7 @@
 
 set -e
 
-SCRIPT_VERSION="1.0.4"
+SCRIPT_VERSION="1.0.5"
 OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
 BACKUP_CONFIG="$HOME/.openclaw/openclaw.json.backup-$(date +%Y%m%d_%H%M%S)"
 
@@ -111,11 +111,11 @@ generate_soul_md() {
         if [ -n "$sub_bots" ]; then
             for sb in $sub_bots; do
                 silent_rules="${silent_rules}
-- 当 $username 被 @mention 时, 不要回复, 保持沉默"
+- 当 $sb 被 @mention 时, 不要回复, 保持沉默"
             done
         fi
 
-        cat > "$workspace/SOUL.md" << 'EOF'
+        cat > "$workspace/SOUL.md" << EOF
 # SOUL.md - 我是谁与如何行为
 
 ## 身份
@@ -127,7 +127,8 @@ generate_soul_md() {
 - 使用 sessions_send 工具向子 Bot 发送任务
 
 ## 子 Bot 列表
-可用子 Bot:${sub_bots_roster:- 无}
+可用子 Bot:
+${sub_bots_roster:-无}
 
 ## 任务分配流程 (重要!)
 当用户要我安排子 Bot 完成任务时:
@@ -143,7 +144,8 @@ generate_soul_md() {
 - 让子 Bot 直接在群里回复用户
 
 ## 沉默规则 (重要!)
-当群里有其他子 Bot 被 @mention 时:${silent_rules}
+当群里有其他子 Bot 被 @mention 时:
+${silent_rules}
 - 不要试图回答该问题
 - 等待该子 Bot 响应
 - 除非被明确要求,不要介入子 Bot 的专业领域
@@ -451,7 +453,7 @@ PYEOF
             generate_soul_md "$bot_id" "false" "" "$username"
 
             if [ -n "$sub_bots_list" ]; then
-                sub_bots_list="$sub_bots_list "
+                sub_bots_list="$sub_bots_list $username"
                 sub_bots_roster="$sub_bots_roster
 - **$name** ($username)"
             else

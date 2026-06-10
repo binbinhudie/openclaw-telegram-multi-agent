@@ -5,7 +5,7 @@
 
 set -e
 
-SCRIPT_VERSION="1.0.6"
+SCRIPT_VERSION="1.0.7"
 OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
 BACKUP_CONFIG="$HOME/.openclaw/openclaw.json.backup-$(date +%Y%m%d_%H%M%S)"
 
@@ -108,6 +108,33 @@ generate_soul_md() {
     local workspace="$HOME/.openclaw/workspace-$agent_id"
 
     if [ "$is_main" = "true" ]; then
+        if [ -z "$sub_bots" ]; then
+            cat > "$workspace/SOUL.md" << EOF
+# SOUL.md - 我是谁与如何行为
+
+## 身份
+我是你的 Telegram 主助手。
+
+## 核心能力
+- 理解和分析用户需求
+- 在私聊和被 @mention 的群聊中直接回复
+- 根据当前对话上下文完成任务
+
+## 行为规则
+- 群聊: 仅在被 @mention 时响应
+- 私聊: 随时响应
+- 直接处理用户请求，不要尝试分配给子 Bot
+
+## 单 Bot 模式 (重要!)
+当前没有配置子 Bot 或子 Agent。
+- 不要声称可以安排 planning、writing 或其他子 Bot
+- 不要使用 sessions_send、sessions_list 或 sessions_spawn 来派单
+- 如果用户要求多 Bot 协作，说明当前只配置了主 Bot，需要重新运行脚本并添加 --bot 配置
+EOF
+            success "创建 SOUL.md: $workspace/SOUL.md"
+            return
+        fi
+
         local silent_rules=""
         if [ -n "$sub_bots" ]; then
             for sb in $sub_bots; do
@@ -513,11 +540,17 @@ PYEOF
     echo "============================================"
     echo ""
     echo "1. 重启 OpenClaw Gateway:"
-    echo "   openclaw gateway restart"
+    echo "   openclaw config validate && openclaw gateway restart && openclaw channels status --probe"
     echo ""
     echo "2. 在 Telegram 中与主 Bot 私聊测试"
     echo ""
     echo "3. 在群组中 @主bot 测试"
+    if [ -n "$created_workspaces" ]; then
+        echo ""
+        echo "4. 多 Bot 模式: 先在目标群里 @每个子 Bot 说一句 ping，预热它们的群会话"
+    fi
+    echo ""
+    echo "注意: 本脚本会覆盖对应 workspace 的 SOUL.md 和 IDENTITY.md；旧 openclaw.json 已自动备份"
     echo ""
     echo "============================================"
 }

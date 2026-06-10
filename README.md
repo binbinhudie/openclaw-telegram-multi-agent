@@ -39,7 +39,7 @@ chmod +x setup_telegram_multi_agent.sh
 | `--main` | 主 Bot 配置，格式 `名称:Token:@Username` | 是 |
 | `--user-id` | 你的 Telegram User ID (from @userinfobot) | 是 |
 | `--group-id` | 群组 ID (如 -1001234567890) | 是 |
-| `--bot` | 子 Bot 配置，格式 `名称:Token:@Username`，可重复传入 | 是 |
+| `--bot` | 子 Bot 配置，格式 `名称:Token:@Username`，可重复传入；不填则只配置主 Bot | 否 |
 
 ### 架构说明
 
@@ -67,8 +67,10 @@ chmod +x setup_telegram_multi_agent.sh
 ## 注意事项
 
 1. 运行前请备份现有配置: `cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.bak`
-2. 首次运行后需要重启 Gateway: `openclaw gateway restart`
-3. 子 Bot 间协作依赖 `tools.agentToAgent` 配置
+2. 运行脚本会覆盖对应 workspace 的 `SOUL.md` 和 `IDENTITY.md`
+3. 运行后建议执行: `openclaw config validate && openclaw gateway restart && openclaw channels status --probe`
+4. 多 Bot 模式下，先在目标群里 `@` 每个子 Bot 说一句 `ping`，让 OpenClaw 建立同群会话
+5. 子 Bot 协作依赖 `tools.agentToAgent` 和 `sessions_send` 配置
 
 ## 目录结构
 

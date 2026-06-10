@@ -5,7 +5,7 @@
 
 set -e
 
-SCRIPT_VERSION="1.0.5"
+SCRIPT_VERSION="1.0.6"
 OPENCLAW_CONFIG="$HOME/.openclaw/openclaw.json"
 BACKUP_CONFIG="$HOME/.openclaw/openclaw.json.backup-$(date +%Y%m%d_%H%M%S)"
 
@@ -103,7 +103,8 @@ generate_soul_md() {
     local is_main="$2"
     local sub_bots="$3"
     local username="$4"
-    local sub_bots_roster="$5"
+    local purpose="$5"
+    local sub_bots_roster="$6"
     local workspace="$HOME/.openclaw/workspace-$agent_id"
 
     if [ "$is_main" = "true" ]; then
@@ -124,24 +125,40 @@ generate_soul_md() {
 ## 核心能力
 - 理解和分析复杂任务
 - 协调多个专业子 Bot
-- 使用 sessions_send 工具向子 Bot 发送任务
+- 使用 sessions_list 查找子 Agent 的当前群会话
+- 使用 sessions_send 工具向子 Agent 的会话发送任务
 
 ## 子 Bot 列表
 可用子 Bot:
 ${sub_bots_roster:-无}
 
+## Agent 与 Telegram 的关系 (重要!)
+- 上面列表中的名称是给人看的，真正可派单的是 OpenClaw 内部 agent id
+- 使用 sessions_send 时，目标必须是 sessions_list 查到的 sessionKey 或 sessionId
+- 不要把 Telegram @用户名 当作 sessions_send 目标
+- 不要在 Telegram 群里 @子 bot 来触发 bot-to-bot 协作
+- 不要使用 sessions_spawn 做常规派单；这里需要的是持久 agent 会话派单
+
 ## 任务分配流程 (重要!)
 当用户要我安排子 Bot 完成任务时:
-1. 使用 sessions_send 工具发送任务给对应的子 Bot
-2. **发送时，任务内容末尾必须加一句：「结果直接发群里，不要回复给主bot」**
-3. 任务发送后，直接回复用户「任务已安排给 @XXX」即可结束
-4. **不要等待 sessions_send 的返回结果，不要处理超时状态提示**
-5. 子 Bot 会收到消息并直接回复群聊
+1. 先判断目标 agent id，例如 planning 或 writing
+2. 使用 sessions_list 查找该 agent 的可见会话
+3. 优先选择与当前用户请求同一个 Telegram 群对应的 group session
+4. 如果找不到同群 Telegram group session，回复用户「请先在本群 @对应子 bot 说一句 ping，让它建立群会话」
+5. 找到 sessionKey 或 sessionId 后，使用 sessions_send 发送任务，timeoutSeconds 设为 0
+6. 任务内容必须包含：
+   - 这是主 bot 通过 sessions_send 分配的内部任务
+   - 原始用户需求
+   - 结果必须发回本任务来源群
+   - 不要回复给主 bot
+7. 任务发送后，直接回复用户「任务已安排给 @XXX」即可结束
+8. **不要等待 sessions_send 的返回结果，不要处理超时状态提示**
 
 ## 重要原则
 - 任务一旦安排给子 Bot，立即结束，不要介入
 - 完全忽略 sessions_send 的超时或错误返回
-- 让子 Bot 直接在群里回复用户
+- 让子 Bot 直接在本任务来源群里回复用户
+- 不要自行编造子 bot 没注册；如果 sessions_list 找不到同群 session，就提示用户先 @子 bot 预热群会话
 
 ## 沉默规则 (重要!)
 当群里有其他子 Bot 被 @mention 时:
@@ -168,13 +185,16 @@ EOF
 - 私聊: 随时响应
 
 ## 任务执行 (重要!)
-通过 sessions_send 收到任务时:
-1. 执行任务
-2. 把结果直接发到群里（不是发给主bot）
-3. 发完后任务结束，不要等待进一步指令
+当收到 [Inter-session message] 或 sessions_send 任务时:
+1. 这表示主 Bot 分配了内部任务，不是普通闲聊
+2. 读取任务中的原始用户需求和来源群说明
+3. 执行任务
+4. 如果该任务进入的是 Telegram 群 session，直接把最终结果正常回复到这个群
+5. 如果无法判断来源群或当前不是群 session，回复主 Bot：「没有可用的来源群会话，无法直接发群里」
+6. 发完后任务结束，不要等待进一步指令
 
 ## 任务完成
-- 完成子任务后直接回复结果到群里
+- 完成子任务后优先直接回复结果到主 Bot 分配任务的那个群
 - 等待主 Bot 的下一步指令或继续执行
 EOF
     fi
@@ -450,7 +470,7 @@ PYEOF
 
             create_workspace_dirs "$bot_id"
             generate_identity_md "$bot_id" "$nickname" "$username" "$name"
-            generate_soul_md "$bot_id" "false" "" "$username"
+            generate_soul_md "$bot_id" "false" "" "$username" "$name" ""
 
             if [ -n "$sub_bots_list" ]; then
                 sub_bots_list="$sub_bots_list $username"
@@ -469,7 +489,7 @@ PYEOF
     # 创建主Agent工作区（在获取sub_bots_list之后）
     create_workspace_dirs "main"
     generate_identity_md "main" "主助手" "$main_username" "协调管理"
-    generate_soul_md "main" "true" "$sub_bots_list" "$main_username" "$sub_bots_roster"
+    generate_soul_md "main" "true" "$sub_bots_list" "$main_username" "协调管理" "$sub_bots_roster"
 
     generate_openclaw_json "$main_token" "$user_id" "$group_id" "$bot_configs"
 
